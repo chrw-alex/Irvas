@@ -3,10 +3,11 @@
 // Modals
 
 const modals = () => {
-  function bindModal(triggerSelector, modalSelector, closeSelector) {
+  function bindModal(triggerSelector, modalSelector, closeSelector, closeClickOverlay = true) {
     const trigger = document.querySelectorAll(triggerSelector),
       modal = document.querySelector(modalSelector),
-      close = document.querySelector(closeSelector);
+      close = document.querySelector(closeSelector),
+      windows = document.querySelectorAll('[data-modal]');
 
     trigger.forEach(item => {
       item.addEventListener('click', (e) => {
@@ -14,18 +15,31 @@ const modals = () => {
           e.preventDefault();
         }
 
+        windows.forEach(item => {
+          item.style.display = "none";
+        });
+
         modal.style.display = "block";
         document.body.style.overflow = "hidden";
       });
     });
 
     close.addEventListener('click', () => {
+      windows.forEach(item => {
+        item.style.display = "none";
+      });
+
       modal.style.display = "none";
       document.body.style.overflow = "";
     });
 
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
+
+    if (e.target === modal && closeClickOverlay) {
+        windows.forEach(item => {
+          item.style.display = "none";
+        });
+
         modal.style.display = "none";
         document.body.style.overflow = "";
       }
@@ -41,12 +55,15 @@ const modals = () => {
 
   bindModal('.popup_engineer_btn', '.popup_engineer', '.popup_engineer .popup_close');
   bindModal('.phone_link', '.popup', '.popup .popup_close');
+  bindModal('.popup_calc_btn', '.popup_calc', '.popup_calc_close')
+  bindModal('.popup_calc_button', '.popup_calc_profile', '.popup_calc_profile_close', false);
+  bindModal('.popup_calc_profile_button', '.popup_calc_end', '.popup_calc_end_close', false)
   //showModalByTime('.popup', 60000);
 };
 
 // Tabs
 
-const tabs = (headerSelector, tabSelector, contentSelector, activeClass) => {
+const tabs = (headerSelector, tabSelector, contentSelector, activeClass, display = "block") => {
   const header = document.querySelector(headerSelector),
     tab = document.querySelectorAll(tabSelector),
     content = document.querySelectorAll(contentSelector);
@@ -62,7 +79,7 @@ const tabs = (headerSelector, tabSelector, contentSelector, activeClass) => {
   }
 
   function showTabContent(i = 0) {
-    content[i].style.display = "block";
+    content[i].style.display = display;
     tab[i].classList.add(activeClass);
   }
 
@@ -86,16 +103,21 @@ const tabs = (headerSelector, tabSelector, contentSelector, activeClass) => {
 
 // Forms
 
-const forms = () => {
-  const form = document.querySelectorAll('form'),
-        inputs = document.querySelectorAll('input'),
-        phoneInputs = document.querySelectorAll('input[name = "user_phone"]');
 
-  phoneInputs.forEach(item => {
+const checkNumInputs = (selector) => {
+  const numInputs = document.querySelectorAll(selector);
+  numInputs.forEach(item => {
     item.addEventListener('input', () => {
       item.value = item.value.replace(/\D/, '');
     });
   });
+};
+
+const forms = (state) => {
+  const form = document.querySelectorAll('form'),
+        inputs = document.querySelectorAll('input');
+
+  checkNumInputs('input[name = "user_phone"]');
 
   const message = {
     loading: 'Загрузка...',
@@ -129,6 +151,11 @@ const forms = () => {
       item.appendChild(statusMessage);
 
       const formData = new FormData(item);
+      if (item.getAttribute('data-calc') === 'end') {
+        for (let key in state) {
+          formData.append(key, state[key]);
+        }
+      }
 
       postData('assets/server.php', formData)
       .then(res => {
@@ -150,8 +177,60 @@ const forms = () => {
   });
 };
 
+// Modal-Calculator
 
+let modalState = {};
+
+const changeModalState = (state) => {
+  const windowForm = document.querySelectorAll('.balcon_icons_img'),
+        windowWidth = document.querySelectorAll('#width'),
+        windowHeight = document.querySelectorAll('#height'),
+        windowType = document.querySelectorAll('#view_type'),
+        windowProfile = document.querySelectorAll('.checkbox');
+
+  checkNumInputs('#width');
+  checkNumInputs('#height');
+
+  function bindActionToElems (event, elem, prop) {
+    elem.forEach((item, i) => {
+      item.addEventListener(event, () => {
+        switch(item.nodeName) {
+          case 'SPAN': 
+            state[prop] =i;
+            break;
+          case 'INPUT':
+            if (item.getAttribute('type') === 'checkbox') {
+              i === 0 ? state[prop] = 'Холодное' : state[prop] = 'Теплое';
+              elem.forEach((box, j) => {
+                box.checked = false;
+                if (i == j) {
+                  box.checked = true;
+                }
+              })
+            } else {
+              state[prop] = item.value;
+            }
+            break;
+          case 'SELECT':
+            state[prop] = item.value;
+            break;
+        }
+        console.log(state);
+      });
+    });
+  }
+
+  bindActionToElems('click', windowForm, 'form');
+  bindActionToElems('input', windowWidth, 'width');
+  bindActionToElems('input', windowHeight, 'height');
+  bindActionToElems('change', windowType, 'type');
+  bindActionToElems('change', windowProfile, 'profile');
+};
+
+
+changeModalState(modalState);
 modals();
 tabs('.glazing_slider', '.glazing_block', '.glazing_content', 'active');
 tabs('.decoration_slider', '.no_click', '.decoration_content > div > div', 'after_click');
-forms();
+tabs('.balcon_icons', '.balcon_icons_img', '.big_img > img', 'do_image_more', 'inline-block');
+forms(modalState);
