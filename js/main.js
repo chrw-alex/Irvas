@@ -290,6 +290,40 @@ const timer = (id, deadline) => {
   setClock(id, deadline);
 };
 
+// Images
+
+const images = () => {
+  const imgPopup = document.createElement('div'),
+        workSection = document.querySelector('.works'),
+        bigImage = document.createElement('img');
+
+  imgPopup.classList.add('popup');
+  workSection.appendChild(imgPopup);
+
+  imgPopup.style.justifyContent = 'center';
+  imgPopup.style.alignItems = 'center';
+  imgPopup.style.display = 'none';
+
+  imgPopup.appendChild(bigImage);
+
+  workSection.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    let target = e.target;
+
+    if (target && target.classList.contains('preview')) {
+      imgPopup.style.display = 'flex';
+      const path = target.parentNode.getAttribute('href');
+      bigImage.setAttribute('src', path);
+    }
+
+    if (target && target.matches('div.popup')) {
+      imgPopup.style.display = 'none';
+    }
+    
+  });
+};
+
 
 changeModalState(modalState);
 modals();
@@ -298,3 +332,4 @@ tabs('.decoration_slider', '.no_click', '.decoration_content > div > div', 'afte
 tabs('.balcon_icons', '.balcon_icons_img', '.big_img > img', 'do_image_more', 'inline-block');
 forms(modalState);
 timer('.container1', deadline);
+images();
